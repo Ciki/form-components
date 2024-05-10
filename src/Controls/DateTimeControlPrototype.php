@@ -35,6 +35,7 @@ abstract class DateTimeControlPrototype extends TextBase
 	{
 		$control = parent::getControl();
 		$control->type = $this->htmlType;
+		$control->autocomplete('off');
 		$control->addClass($this->htmlType);
 
 		list($min, $max) = $this->extractRangeRule($this->getRules());
@@ -117,28 +118,31 @@ abstract class DateTimeControlPrototype extends TextBase
 		$controlMin = $controlMax = null;
 		/** @var Nette\Forms\Rule $rule */
 		foreach ($rules as $rule) {
+			$ruleMin = $ruleMax = null;
+
 			/** @var Rules|null $branch */
 			$branch = $rule->branch;
 			if ($branch === null) {
-				if ($rule->validator === Form::RANGE && !$rule->isNegative) {
-					$ruleMinMax = $rule->arg;
+				if (!$rule->isNegative) {
+					if ($rule->validator === Form::MIN) {
+						$ruleMin = $rule->arg;
+					} elseif ($rule->validator === Form::MAX) {
+						$ruleMax = $rule->arg;
+					} elseif ($rule->validator === Form::RANGE) {
+						list($ruleMin, $ruleMax) = $rule->arg;
+					}
 				}
-
 			} else {
 				if ($rule->validator === Form::FILLED && !$rule->isNegative && $rule->control === $this) {
-					$ruleMinMax = $this->extractRangeRule($branch);
+					list($ruleMin, $ruleMax) = $this->extractRangeRule($branch);
 				}
 			}
 
-			if (isset($ruleMinMax)) {
-				list($ruleMin, $ruleMax) = $ruleMinMax;
-				if ($ruleMin !== null && ($controlMin === null || $ruleMin > $controlMin)) {
-					$controlMin = $ruleMin;
-				}
-				if ($ruleMax !== null && ($controlMax === null || $ruleMax < $controlMax)) {
-					$controlMax = $ruleMax;
-				}
-				$ruleMinMax = null;
+			if ($ruleMin !== null && ($controlMin === null || $ruleMin > $controlMin)) {
+				$controlMin = $ruleMin;
+			}
+			if ($ruleMax !== null && ($controlMax === null || $ruleMax < $controlMax)) {
+				$controlMax = $ruleMax;
 			}
 		}
 		return [$controlMin, $controlMax];
